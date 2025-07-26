@@ -5,9 +5,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct Link {
-    pub id: Uuid,
-    pub platform_id: Uuid,
     pub slug: String,
+    pub platform_id: Uuid,
     pub url: String,
     pub metadata: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
@@ -40,12 +39,12 @@ pub async fn create_link(
             sqlx::query_as!(
                 Link,
                 r#"
-                    INSERT INTO links (platform_id, slug, url, metadata, created_at)
+                    INSERT INTO links (slug, platform_id, url, metadata, created_at)
                     VALUES ($1, $2, $3, $4, NOW())
-                    RETURNING id, platform_id, slug, url, metadata, created_at;
+                    RETURNING slug, platform_id, url, metadata, created_at;
                 "#,
-                platform_id,
                 slug,
+                platform_id,
                 url,
                 metadata,
             )
@@ -55,4 +54,16 @@ pub async fn create_link(
     }
 
     result.unwrap()
+}
+
+pub async fn get_link(db: &mut PgConnection, slug: &str) -> sqlx::Result<Option<Link>> {
+    sqlx::query_as!(
+        Link,
+        r#"
+            SELECT slug, platform_id, url, metadata, created_at FROM links WHERE slug = $1
+        "#,
+        slug,
+    )
+    .fetch_optional(&mut *db)
+    .await
 }

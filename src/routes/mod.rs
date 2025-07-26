@@ -1,5 +1,10 @@
-mod api;
+use poem::Route;
 
-pub fn routes() -> poem::Route {
-    poem::Route::new().nest("/api/", api::routes())
+mod admin;
+mod redirect;
+
+pub fn routes() -> Route {
+    Route::new()
+        .nest("/admin/", admin::routes())
+        .at("/:slug/", redirect::redirect)
 }

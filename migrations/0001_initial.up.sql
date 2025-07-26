@@ -5,16 +5,15 @@ CREATE TABLE platforms (
 );
 
 CREATE TABLE links (
-    id           UUID PRIMARY KEY,
+    slug         VARCHAR PRIMARY KEY,
     platform_id  UUID NOT NULL REFERENCES platforms (id) ON DELETE CASCADE,
-    slug         VARCHAR NOT NULL,
     url          VARCHAR NOT NULL,
     metadata     JSONB,
     created_at   TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE link_visits (
-    link_id      UUID NOT NULL REFERENCES links (id) ON DELETE CASCADE,
+    link_slug    VARCHAR NOT NULL REFERENCES links (slug) ON DELETE CASCADE,
     at           TIMESTAMPTZ NOT NULL,
     headers      JSONB,
     ip_address   VARCHAR
