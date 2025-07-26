@@ -36,14 +36,17 @@ pub async fn redirect(
         }
     }
 
-    headers.into_iter().fold(HashMap::<String, Vec<String>>::new(), |mut map, (header_name, header_value)| {
-        if let Ok(header_value) = header_value.to_str().map(|hv| hv.to_string()) {
-            let header_name = header_name.as_str().to_string();
-            map.entry(header_name).or_default().push(header_value);
-        }
+    headers.into_iter().fold(
+        HashMap::<String, Vec<String>>::new(),
+        |mut map, (header_name, header_value)| {
+            if let Ok(header_value) = header_value.to_str().map(|hv| hv.to_string()) {
+                let header_name = header_name.as_str().to_string();
+                map.entry(header_name).or_default().push(header_value);
+            }
 
-        map
-    });
+            map
+        },
+    );
 
     create_link_visit(
         &mut db,

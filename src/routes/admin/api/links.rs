@@ -1,9 +1,14 @@
 use chrono::{DateTime, Utc};
 use poem::{
-    http::StatusCode, web::{Data, Json}, ResponseBuilder, Route
+    Body, ResponseBuilder, Route,
+    http::StatusCode,
+    web::{Data, Json},
 };
 
-use crate::{common::platform_auth::AuthedPlatform, db::links::{create_link, get_link}};
+use crate::{
+    common::platform_auth::AuthedPlatform,
+    db::links::{create_link, get_link, Link},
+};
 
 pub fn routes() -> Route {
     Route::new().at("", poem::post(post_create_link))
@@ -13,8 +18,8 @@ pub fn routes() -> Route {
 #[cfg_attr(test, derive(serde::Deserialize))]
 #[serde(tag = "error_type")]
 enum PostCreateLinkError {
-    #[error("slug {slug:#?} is already in use")]
-    SlugAlreadyUsed { slug: String }
+    #[error("slug is already in use for existing link")]
+    SlugAlreadyUsed(LinkDetailsView),
 }
 
 #[derive(serde::Deserialize)]
@@ -24,13 +29,18 @@ struct PostCreateLinkRequest {
     metadata: Option<serde_json::Value>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 struct LinkDetailsView {
     id: String,
     slug: String,
     url: String,
     metadata: Option<serde_json::Value>,
     created_at: DateTime<Utc>,
+}
+
+impl From<Link> for LinkDetailsView {
+    
 }
 
 #[poem::handler]
@@ -41,10 +51,21 @@ pub async fn post_create_link(
 ) -> poem::Result<Json<LinkDetailsView>> {
     let mut db = db.acquire().await.unwrap();
 
-    // create_link(db, platform_id, slug, url, metadata);
+    if let Some(custom_slug) = create_request.slug {
+        let link_for_slug = get_link(&mut *db, custom_slug.as_str())
+            .await
+            .unwrap();
 
-    if get_link(&mut *db, create_request.slug).await.unwrap().is_some() {
-        return poem::Error::from_response(poem::Response::builder().status(StatusCode::BAD_REQUEST).body(Json(PostLink)))
+        if let Some(link_for_slug) = link_for_slug {
+            return Err(poem::Error::from_response(
+                poem::Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(
+                        Body::from_json(PostCreateLinkError::SlugAlreadyUsed(LinkDetailsView))
+                        .unwrap(),
+                    ),
+            ));
+        }
     }
 
     todo!();
