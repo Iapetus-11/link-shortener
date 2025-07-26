@@ -7,8 +7,6 @@ use crate::db::platforms::{Platform, check_platform_api_key, get_platform};
 
 pub struct AuthedPlatform(pub Platform);
 
-// TODO: https://docs.rs/poem/latest/poem/web/headers/struct.Authorization.html
-
 impl<'a> poem::FromRequest<'a> for AuthedPlatform {
     async fn from_request(
         req: &'a poem::Request,

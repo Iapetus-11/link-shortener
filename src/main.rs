@@ -56,7 +56,9 @@ async fn main() -> Result<(), Box<dyn StdError>> {
         "api" => run_api().await.unwrap(),
         "create_platform" => run_create_platform().await.unwrap(),
         "" => panic!("You must type a command, one of: api, create_platform"),
-        unknown_command => panic!("Unknown command {unknown_command}, you must type one of: api, create_platform"),
+        unknown_command => {
+            panic!("Unknown command {unknown_command}, you must type one of: api, create_platform")
+        }
     };
 
     Ok(())

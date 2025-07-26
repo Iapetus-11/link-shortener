@@ -1,4 +1,4 @@
-use std::io::{self, stdin, stdout, Write};
+use std::io::{self, Write, stdin, stdout};
 
 pub fn take_input(prompt: &str) -> io::Result<String> {
     let mut input = String::new();
