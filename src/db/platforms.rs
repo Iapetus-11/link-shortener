@@ -108,6 +108,9 @@ pub mod tests {
     async fn test_check_api_key_on_invalid_keys(mut db: PgPoolConn) {
         let (api_key, platform) = create_platform(&mut *db, "Villager Bot").await.unwrap();
 
-        assert!(!check_platform_api_key(&platform, "ball"))
+        assert!(!check_platform_api_key(&platform, "balls"));
+        assert!(!check_platform_api_key(&platform, ""));
+        assert!(!check_platform_api_key(&platform, " "));
+        assert!(check_platform_api_key(&platform, &api_key));
     }
 }
