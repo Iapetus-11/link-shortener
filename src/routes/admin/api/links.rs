@@ -76,7 +76,7 @@ pub async fn post_create_link(
 
     let link = create_link(
         &mut db,
-        platform.id,
+        &platform.id,
         create_request.slug,
         create_request.url,
         create_request.metadata,

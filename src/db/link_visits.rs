@@ -19,11 +19,8 @@ pub async fn create_link_visit(
     .map(|_| ())
 }
 
-
 #[cfg(test)]
 pub mod tests {
     #[sqlx::test]
-    async fn test_create_link_visit() {
-        
-    }
+    async fn test_create_link_visit() {}
 }
