@@ -50,7 +50,7 @@ pub fn generate_platform_api_key() -> PlatformApiKeyAndHash {
 /// Creates a Platform, returning the unhashed API key and an object holding the Platform's data
 pub async fn create_platform(
     db: &mut PgConnection,
-    name: String,
+    name: &str,
 ) -> sqlx::Result<(String, Platform)> {
     let PlatformApiKeyAndHash {
         api_key,
@@ -79,4 +79,35 @@ pub async fn get_platform(db: &mut PgConnection, id: Uuid) -> sqlx::Result<Optio
     )
     .fetch_optional(&mut *db)
     .await
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::{common::testing::db::PgPoolConn};
+
+    #[sqlx::test]
+    async fn test_create_and_get_platform(mut db: PgPoolConn) {
+        let (api_key, platform) = create_platform(&mut *db, "Some Platform").await.unwrap();
+
+        assert!(api_key.len() == 69);
+        assert!(platform.name == "Some Platform");
+
+        let platform = get_platform(&mut *db, platform.id).await.unwrap().unwrap();
+        assert_eq!(platform.name, "Some Platform");
+    }
+
+    #[sqlx::test]
+    async fn test_generate_and_check_api_key(mut db: PgPoolConn) {
+        let (api_key, platform) = create_platform(&mut *db, "Villager Bot").await.unwrap();
+
+        assert!(check_platform_api_key(&platform, &api_key));
+    }
+
+    #[sqlx::test]
+    async fn test_check_api_key_on_invalid_keys(mut db: PgPoolConn) {
+        let (api_key, platform) = create_platform(&mut *db, "Villager Bot").await.unwrap();
+
+        assert!(!check_platform_api_key(&platform, "ball"))
+    }
 }

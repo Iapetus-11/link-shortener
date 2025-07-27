@@ -38,7 +38,7 @@ async fn run_create_platform() -> Result<(), Box<dyn StdError>> {
 
     let mut db = sqlx::postgres::PgConnection::connect(&CONFIG.database_url).await?;
 
-    let (api_key, platform) = create_platform(&mut db, platform_name).await?;
+    let (api_key, platform) = create_platform(&mut db, &platform_name).await?;
 
     println!("Platform successfully completed!");
     println!("ID: {}", platform.id);

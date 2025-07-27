@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
 use poem::{
-    Body, ResponseBuilder, Route,
+    Body, Route,
     http::StatusCode,
     web::{Data, Json},
 };
 
 use crate::{
     common::platform_auth::AuthedPlatform,
-    db::links::{create_link, get_link, Link},
+    db::links::{Link, create_link, get_link},
 };
 
 pub fn routes() -> Route {
@@ -32,7 +32,6 @@ struct PostCreateLinkRequest {
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(test, derive(serde::Deserialize))]
 struct LinkDetailsView {
-    id: String,
     slug: String,
     url: String,
     metadata: Option<serde_json::Value>,
@@ -40,7 +39,14 @@ struct LinkDetailsView {
 }
 
 impl From<Link> for LinkDetailsView {
-    
+    fn from(value: Link) -> Self {
+        LinkDetailsView {
+            slug: value.slug,
+            url: value.url,
+            metadata: value.metadata,
+            created_at: value.created_at,
+        }
+    }
 }
 
 #[poem::handler]
@@ -51,22 +57,32 @@ pub async fn post_create_link(
 ) -> poem::Result<Json<LinkDetailsView>> {
     let mut db = db.acquire().await.unwrap();
 
-    if let Some(custom_slug) = create_request.slug {
-        let link_for_slug = get_link(&mut *db, custom_slug.as_str())
-            .await
-            .unwrap();
+    if let Some(custom_slug) = &create_request.slug {
+        let link_for_slug = get_link(&mut db, custom_slug.as_str()).await.unwrap();
 
         if let Some(link_for_slug) = link_for_slug {
             return Err(poem::Error::from_response(
                 poem::Response::builder()
                     .status(StatusCode::BAD_REQUEST)
                     .body(
-                        Body::from_json(PostCreateLinkError::SlugAlreadyUsed(LinkDetailsView))
+                        Body::from_json(PostCreateLinkError::SlugAlreadyUsed(
+                            LinkDetailsView::from(link_for_slug),
+                        ))
                         .unwrap(),
                     ),
             ));
         }
     }
 
-    todo!();
+    let link = create_link(
+        &mut db,
+        platform.id,
+        create_request.slug,
+        create_request.url,
+        create_request.metadata,
+    )
+    .await
+    .unwrap();
+
+    Ok(Json(LinkDetailsView::from(link)))
 }

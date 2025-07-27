@@ -18,3 +18,12 @@ pub async fn create_link_visit(
     .await
     .map(|_| ())
 }
+
+
+#[cfg(test)]
+pub mod tests {
+    #[sqlx::test]
+    async fn test_create_link_visit() {
+        
+    }
+}
