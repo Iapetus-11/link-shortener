@@ -15,6 +15,6 @@ CREATE TABLE links (
 CREATE TABLE link_visits (
     link_slug    VARCHAR NOT NULL REFERENCES links (slug) ON DELETE CASCADE,
     at           TIMESTAMPTZ NOT NULL,
-    headers      JSONB,
+    headers      JSONB NOT NULL,
     ip_address   VARCHAR
 );
