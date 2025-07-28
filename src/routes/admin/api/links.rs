@@ -90,7 +90,7 @@ pub async fn post_create_link(
 
 #[cfg(test)]
 mod tests {
-    
+
     use serde_json::json;
     use sqlx::PgPool;
 

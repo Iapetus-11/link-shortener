@@ -93,7 +93,7 @@ mod tests {
 
         assert_eq!(link.platform_id, platform.id);
         assert_eq!(link.slug, "custom_slug");
-        assert_eq!(link.url, "https://iapetus11.me/");
+        assert_eq!(link.url, "https://iapetus11.me");
         assert_eq!(
             link.metadata
                 .unwrap()
