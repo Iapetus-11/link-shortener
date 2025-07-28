@@ -169,4 +169,47 @@ mod tests {
         assert_eq!(link.slug.len(), 7);
         assert_eq!(link.url, "https://iapetus11.me/");
     }
+
+    #[sqlx::test]
+    async fn test_post_create_link_but_slug_already_used(db_pool: PgPool) {
+        let mut db = db_pool.acquire().await.unwrap();
+
+        let (api_key, platform) = create_platform(&mut db, "testy mctestface").await.unwrap();
+
+        let link = create_link(
+            &mut db,
+            &platform.id,
+            Some("duplicate".to_string()),
+            "https://example.com/".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        let api = api_test_client(db_pool);
+        let response = api
+            .post("/admin/api/links/")
+            .typed_header(platform_auth_header(&platform.id, &api_key))
+            .body_json(&PostCreateLinkRequest {
+                slug: Some(link.slug.clone()),
+                url: "https://villagerbot.com/".to_string(),
+                metadata: None,
+            })
+            .send()
+            .await;
+
+        response.assert_status(StatusCode::BAD_REQUEST);
+
+        response
+            .assert_json(PostCreateLinkError::SlugAlreadyUsed(LinkDetailsView::from(
+                link.clone(),
+            )))
+            .await;
+
+        let link_after_request = get_link(&mut db, &link.slug).await.unwrap().unwrap();
+        assert_eq!(link.platform_id, link_after_request.platform_id);
+        assert_eq!(link.slug, link_after_request.slug);
+        assert_eq!(link.url, link_after_request.url);
+        assert_eq!(link.created_at, link_after_request.created_at);
+    }
 }
