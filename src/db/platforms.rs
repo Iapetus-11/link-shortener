@@ -1,50 +1,13 @@
-use argon2::{
-    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-    password_hash::{SaltString, rand_core::OsRng},
-};
-use rand::distr::{Alphanumeric, SampleString};
 use sqlx::PgConnection;
 use uuid::Uuid;
+
+use crate::common::platform_auth::{PlatformApiKeyAndHash, generate_platform_api_key};
 
 #[derive(Debug, Clone)]
 pub struct Platform {
     pub id: Uuid,
     pub name: String,
     pub api_key_hash: String,
-}
-
-/// Returns true if the api key matches that of the provided platform
-pub fn check_platform_api_key(platform: &Platform, api_key: &str) -> bool {
-    let argon2 = Argon2::default();
-
-    argon2
-        .verify_password(
-            api_key.as_bytes(),
-            &PasswordHash::new(&platform.api_key_hash).unwrap(),
-        )
-        .is_ok()
-}
-
-pub struct PlatformApiKeyAndHash {
-    api_key: String,
-    api_key_hash: String,
-}
-
-/// Generate a platform API key and API key hash
-pub fn generate_platform_api_key() -> PlatformApiKeyAndHash {
-    let api_key = Alphanumeric.sample_string(&mut rand::rng(), 69);
-
-    let argon2 = Argon2::default();
-    let salt = SaltString::generate(&mut OsRng);
-    let api_key_hash = argon2
-        .hash_password(api_key.as_bytes(), &salt)
-        .unwrap()
-        .to_string();
-
-    PlatformApiKeyAndHash {
-        api_key,
-        api_key_hash,
-    }
 }
 
 /// Creates a Platform, returning the unhashed API key and an object holding the Platform's data
@@ -81,6 +44,17 @@ pub async fn get_platform(db: &mut PgConnection, id: Uuid) -> sqlx::Result<Optio
     .await
 }
 
+pub async fn get_platforms(db: &mut PgConnection) -> sqlx::Result<Vec<Platform>> {
+    sqlx::query_as!(
+        Platform,
+        r#"
+            SELECT id, name, api_key_hash FROM platforms;
+        "#,
+    )
+    .fetch_all(&mut *db)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,22 +69,5 @@ mod tests {
 
         let platform = get_platform(&mut db, platform.id).await.unwrap().unwrap();
         assert_eq!(platform.name, "Some Platform");
-    }
-
-    #[sqlx::test]
-    async fn test_generate_and_check_api_key(mut db: PgPoolConn) {
-        let (api_key, platform) = create_platform(&mut db, "Villager Bot").await.unwrap();
-
-        assert!(check_platform_api_key(&platform, &api_key));
-    }
-
-    #[sqlx::test]
-    async fn test_check_api_key_on_invalid_keys(mut db: PgPoolConn) {
-        let (api_key, platform) = create_platform(&mut db, "Villager Bot").await.unwrap();
-
-        assert!(!check_platform_api_key(&platform, "balls"));
-        assert!(!check_platform_api_key(&platform, ""));
-        assert!(!check_platform_api_key(&platform, " "));
-        assert!(check_platform_api_key(&platform, &api_key));
     }
 }

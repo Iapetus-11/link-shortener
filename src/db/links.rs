@@ -12,6 +12,7 @@ pub struct Link {
     pub created_at: DateTime<Utc>,
 }
 
+/// Create a link in the database, a slug will be automatically generated if not provided
 pub async fn create_link(
     db: &mut PgConnection,
     platform_id: &Uuid,
@@ -56,6 +57,7 @@ pub async fn create_link(
     result.unwrap()
 }
 
+/// Retrieve a link by its slug
 pub async fn get_link(db: &mut PgConnection, slug: &str) -> sqlx::Result<Option<Link>> {
     sqlx::query_as!(
         Link,

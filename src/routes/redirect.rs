@@ -17,7 +17,7 @@ pub async fn redirect(
     let mut db = db.acquire().await.unwrap();
 
     let Some(link) = get_link(&mut db, &slug).await.unwrap() else {
-        return Err(poem::Error::from_status(StatusCode::NOT_FOUND));
+        return Err(poem::Error::from_status(StatusCode::NOT_FOUND)); // TODO: Add nice 404 page + option for custom 404 page
     };
 
     let remote_ip = remote_ip.map(|a| a.to_string());

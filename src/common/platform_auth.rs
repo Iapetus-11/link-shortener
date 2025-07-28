@@ -2,8 +2,34 @@ use poem::{
     http::StatusCode,
     web::headers::{self, HeaderMapExt},
 };
+use rand::distr::{Alphanumeric, SampleString};
 
-use crate::db::platforms::{Platform, check_platform_api_key, get_platform};
+use crate::{
+    common::argon2::{check_key_against_hash, hash_key},
+    db::platforms::{Platform, get_platform},
+};
+
+/// Returns true if the api key matches that of the provided platform
+pub fn check_platform_api_key(platform: &Platform, api_key: &str) -> bool {
+    check_key_against_hash(api_key, &platform.api_key_hash)
+}
+
+pub struct PlatformApiKeyAndHash {
+    pub api_key: String,
+    pub api_key_hash: String,
+}
+
+/// Generate a platform API key and API key hash
+pub fn generate_platform_api_key() -> PlatformApiKeyAndHash {
+    let api_key = Alphanumeric.sample_string(&mut rand::rng(), 69);
+
+    let api_key_hash = hash_key(&api_key);
+
+    PlatformApiKeyAndHash {
+        api_key,
+        api_key_hash,
+    }
+}
 
 #[derive(Debug)]
 pub struct AuthedPlatform(pub Platform);
@@ -64,10 +90,30 @@ mod tests {
 
     use super::*;
 
-    use crate::{common::testing::app::platform_auth_header, db::platforms::create_platform};
+    use crate::{
+        common::testing::{app::platform_auth_header, db::PgPoolConn},
+        db::platforms::create_platform,
+    };
 
     #[sqlx::test]
-    async fn test_missing_auth_header(db_pool: PgPool) {
+    async fn test_generate_and_check_api_key(mut db: PgPoolConn) {
+        let (api_key, platform) = create_platform(&mut db, "Villager Bot").await.unwrap();
+
+        assert!(check_platform_api_key(&platform, &api_key));
+    }
+
+    #[sqlx::test]
+    async fn test_check_api_key_on_invalid_keys(mut db: PgPoolConn) {
+        let (api_key, platform) = create_platform(&mut db, "Villager Bot").await.unwrap();
+
+        assert!(!check_platform_api_key(&platform, "balls"));
+        assert!(!check_platform_api_key(&platform, ""));
+        assert!(!check_platform_api_key(&platform, " "));
+        assert!(check_platform_api_key(&platform, &api_key));
+    }
+
+    #[sqlx::test]
+    async fn test_from_request_missing_auth_header(db_pool: PgPool) {
         let result = AuthedPlatform::from_request_without_body(
             &poem::Request::builder().extension(db_pool).finish(),
         )
@@ -82,7 +128,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_invalid_basic_auth_syntax(db_pool: PgPool) {
+    async fn test_from_request_invalid_basic_auth_syntax(db_pool: PgPool) {
         for header_value in [
             "Basic",
             "Basic ",
@@ -108,7 +154,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_non_uuid_platform_id(db_pool: PgPool) {
+    async fn test_from_request_non_uuid_platform_id(db_pool: PgPool) {
         for platform_id_value in ["", "username", "ca15ae9-4d7-46f-a4f-605b42aab03"] {
             let error = AuthedPlatform::from_request_without_body(
                 &poem::Request::builder()
@@ -128,7 +174,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_platform_not_found(db_pool: PgPool) {
+    async fn test_from_request_platform_not_found(db_pool: PgPool) {
         let mut db = db_pool.acquire().await.unwrap();
 
         let (api_key, _) = create_platform(&mut db, "test_patience").await.unwrap();
@@ -147,7 +193,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_invalid_api_key(db_pool: PgPool) {
+    async fn test_from_request_invalid_api_key(db_pool: PgPool) {
         let mut db = db_pool.acquire().await.unwrap();
 
         let (api_key, platform) = create_platform(&mut db, "test_patience").await.unwrap();
@@ -176,7 +222,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_valid_auth_header(db_pool: PgPool) {
+    async fn test_from_request_valid_auth_header(db_pool: PgPool) {
         let mut db = db_pool.acquire().await.unwrap();
 
         let (api_key, platform) = create_platform(&mut db, "Dev-Milo").await.unwrap();
