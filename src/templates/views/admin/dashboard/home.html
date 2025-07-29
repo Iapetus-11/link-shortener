@@ -1,0 +1,84 @@
+{% extends "views/base.html" %}
+
+{% block head %}
+<style>
+    .platforms-list {
+        display: flex;
+        flex-direction: column;
+        row-gap: 1rem;
+    }
+
+    .platform-card {
+        display: flex;
+        justify-content: space-between;
+        padding: 1rem;
+        background-color: #293038;
+        border-radius: 0.5rem;
+    }
+
+    .id-button {
+        background-color: transparent;
+        border: none;
+        color: white;
+    }
+
+    .id-button samp {
+        font-family: monospace;
+    }
+
+    .id-button .id-button-copy-icon {
+        opacity: 0;
+        height: 1rem;
+        width: 1rem;
+        transform: translateY(4px);
+        transition: opacity 100ms;
+    }
+
+    .id-button:hover .id-button-copy-icon {
+        opacity: 0.8;
+    }
+
+    .id-button:active .id-button-copy-icon {
+        opacity: 1;
+    }
+
+    /* --- icons ------------------------ */
+    .material-symbols--content-copy-outline {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M9 18q-.825 0-1.412-.587T7 16V4q0-.825.588-1.412T9 2h9q.825 0 1.413.588T20 4v12q0 .825-.587 1.413T18 18zm0-2h9V4H9zm-4 6q-.825 0-1.412-.587T3 20V6h2v14h11v2zm4-6V4z'/%3E%3C/svg%3E");
+        background-color: currentColor;
+        -webkit-mask-image: var(--svg);
+        mask-image: var(--svg);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-size: 100% 100%;
+        mask-size: 100% 100%;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="display: flex;">
+    <div style="width: 50%;">
+
+    </div>
+
+    <ul style="width: 50%;" class="platforms-list">
+        {% for platform in platforms %}
+        <li class="platform-card">
+            <div>
+                <h3 style="font-size: 1.5rem;">{{ platform.name }}</h3>
+                <button type="button" onclick="navigator.clipboard.writeText('{{ platform.id }}')"
+                    class="id-button">
+                    <span>ID: <samp>{{ platform.id }}</samp></span>
+                    <span class="id-button-copy-icon material-symbols--content-copy-outline"></span>
+                </button>
+            </div>
+            <button type="button">Reset API Key</button>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

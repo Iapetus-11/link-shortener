@@ -4,7 +4,7 @@ use poem::web::{Data, Html};
 use crate::db::platforms::{Platform, get_platforms};
 
 #[derive(askama::Template)]
-#[template(path = "views/admin/home.html")]
+#[template(path = "views/admin/dashboard/home.html")]
 struct HomeViewTemplate<'a> {
     platforms: &'a Vec<Platform>,
 }
