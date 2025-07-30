@@ -64,7 +64,7 @@ impl<'a> poem::FromRequest<'a> for AuthedPlatform {
 
         let mut db = req.data::<sqlx::PgPool>().unwrap().acquire().await.unwrap();
 
-        let Some(platform) = get_platform(&mut db, platform_id).await.unwrap() else {
+        let Some(platform) = get_platform(&mut db, &platform_id).await.unwrap() else {
             return Err(poem::Error::from_string(
                 "invalid credentials",
                 StatusCode::UNAUTHORIZED,

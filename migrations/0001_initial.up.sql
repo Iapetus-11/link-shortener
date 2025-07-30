@@ -1,6 +1,6 @@
 CREATE TABLE platforms (
     id            UUID PRIMARY KEY,
-    name          VARCHAR NOT NULL,
+    name          VARCHAR UNIQUE NOT NULL,
     api_key_hash  VARCHAR NOT NULL
 );
 

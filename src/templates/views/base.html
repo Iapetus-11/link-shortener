@@ -52,11 +52,24 @@
                 border-collapse: collapse;
                 border-spacing: 0;
             }
+
+            button {
+                padding: 0;
+                color: white;
+                border: none;
+                background-color: transparent;
+                font-size: 1em;
+            }
+
+            * {
+                outline: none;
+            }
         </style>
 
         <style>
-            * {
-                font-family: sans-serif;
+            @font-face {
+                font-family: Inter;
+                src: url("/static/InterVariable.woff2");
             }
 
             a, button:not(:disabled) {
@@ -73,10 +86,48 @@
             }
 
             body {
+                font-family: Inter, sans-serif;
                 max-width: 90rem;
                 margin-left: auto;
                 margin-right: auto;
-                padding: 2rem;
+                padding: 4rem;
+            }
+
+            @media (max-width: 77rem) {
+                body {
+                    padding: 2rem;
+                }
+            }
+
+            .card {
+                padding: 1rem;
+                background-color: #293038;
+                border-radius: 0.5rem;
+            }
+
+            .button {
+                background-color: #354659;
+                transition: background-color 200ms;
+                font-size: 0.9rem;
+                padding: 0.5rem 0.6rem;
+                border-radius: 0.25rem;
+            }
+
+            .button:hover:not(:disabled) {
+                background-color: #344a63;
+            }
+
+            .text-input {
+                background-color: #354659;
+                color: white;
+                padding: 0.5rem 0.6rem;
+                border-radius: 0.25rem;
+                border: none;
+                font-size: 0.9rem;
+            }
+
+            .text-input:focus {
+                background-color: #344a63;
             }
         </style>
 
