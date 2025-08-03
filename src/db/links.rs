@@ -33,7 +33,11 @@ pub async fn create_link(
         _ => false,
     } {
         if autogenerate_slug {
-            slug = Some(Alphanumeric.sample_string(&mut rand::rng(), 7)) // TODO: Make this configurable
+            slug = Some(
+                Alphanumeric
+                    .sample_string(&mut rand::rng(), 7) // TODO: Make the length configurable
+                    .to_uppercase(),
+            )
         }
 
         result = Some(
@@ -65,6 +69,34 @@ pub async fn get_link(db: &mut PgConnection, slug: &str) -> sqlx::Result<Option<
             SELECT slug, platform_id, url, metadata, created_at FROM links WHERE slug = $1
         "#,
         slug,
+    )
+    .fetch_optional(&mut *db)
+    .await
+}
+
+pub async fn get_links(db: &mut PgConnection, platform_id: &Uuid) -> sqlx::Result<Vec<Link>> {
+    sqlx::query_as!(
+        Link,
+        r#"
+            SELECT
+                slug, platform_id, url, metadata, created_at
+            FROM links
+            WHERE platform_id = $1
+            ORDER BY created_at DESC;
+        "#,
+        platform_id,
+    )
+    .fetch_all(&mut *db)
+    .await
+}
+
+/// Attempts to delete a link from the database, returning the deleted link or None if no link
+/// for the specified slug exists
+pub async fn delete_link(db: &mut PgConnection, link_slug: &str) -> sqlx::Result<Option<Link>> {
+    sqlx::query_as!(
+        Link,
+        "DELETE FROM links WHERE slug = $1 RETURNING slug, platform_id, url, metadata, created_at;",
+        link_slug
     )
     .fetch_optional(&mut *db)
     .await
@@ -150,5 +182,36 @@ mod tests {
         assert_eq!(created_link.url, retrieved_link.url);
         assert_eq!(created_link.metadata, retrieved_link.metadata);
         assert_eq!(created_link.created_at, retrieved_link.created_at);
+    }
+
+    #[sqlx::test]
+    async fn test_get_links(mut db: PgPoolConn) {
+        let (_, platform) = create_platform(&mut db, "wowza").await.unwrap();
+
+        let link_a = create_link(
+            &mut db,
+            &platform.id,
+            Some("link_a".to_string()),
+            "https://www.kevinjosethomas.com/".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        let link_b = create_link(
+            &mut db,
+            &platform.id,
+            Some("link_b".to_string()),
+            "https://iapetus11.me/".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        let links = get_links(&mut db, &platform.id).await.unwrap();
+
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0].slug, link_b.slug);
+        assert_eq!(links[1].slug, link_a.slug);
     }
 }

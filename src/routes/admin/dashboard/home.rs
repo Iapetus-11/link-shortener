@@ -9,13 +9,20 @@ use poem::{
     web::{Data, Form, Html, Query, Redirect, cookie::SameSite},
 };
 use serde::{Deserialize, Serialize};
+use serde_valid::{Validate, json::ToJsonString};
 use uuid::Uuid;
 
 use crate::{
-    common::platform_auth::{PlatformApiKeyAndHash, generate_platform_api_key},
-    db::platforms::{
-        Platform, UpdatePlatformData, create_platform, get_platform_by_name, get_platforms,
-        update_platform,
+    common::{
+        platform_auth::{PlatformApiKeyAndHash, generate_platform_api_key},
+        validation::validate_to_poem_error,
+    },
+    db::{
+        links::{Link, create_link, delete_link, get_links},
+        platforms::{
+            Platform, UpdatePlatformData, create_platform, get_platform, get_platform_by_name,
+            get_platforms, update_platform,
+        },
     },
 };
 
@@ -26,6 +33,8 @@ pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
         .at("", get(get_view))
         .at("/reset-api-key/", post(post_reset_api_key))
         .at("/create-platform/", post(post_create_platform))
+        .at("/create-link/", post(post_create_link))
+        .at("/delete-link/", post(post_delete_link))
         .with(ServerSession::new(
             CookieConfig::new()
                 .secure(true)
@@ -48,20 +57,22 @@ enum PageActionResult {
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct PageState {
     action_result: Option<PageActionResult>,
-    selected_platform_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
 pub struct HomeViewQueryParams {
-    // #[serde(default)]
-    selected_platform: Option<Uuid>,
+    platform: Option<Uuid>,
 }
 
 #[derive(askama::Template)]
 #[template(path = "views/admin/dashboard/home.html")]
 struct HomeViewTemplate<'a> {
     platforms: &'a Vec<Platform>,
+    links: &'a Vec<Link>,
+
     state: &'a PageState,
+
+    selected_platform: Option<&'a Platform>,
 }
 
 #[poem::handler]
@@ -69,15 +80,24 @@ pub async fn get_view(
     db_pool: Data<&sqlx::PgPool>,
     session: &Session,
     Query(HomeViewQueryParams {
-        selected_platform: selected_platform_id,
+        platform: selected_platform_id,
     }): Query<HomeViewQueryParams>,
 ) -> poem::Result<Html<String>> {
     let mut db = db_pool.acquire().await.unwrap();
 
     let platforms = get_platforms(&mut db).await.unwrap();
 
+    let links: Vec<Link>;
+    let selected_platform: Option<&Platform>;
+    if let Some(selected_platform_id) = selected_platform_id {
+        links = get_links(&mut db, &selected_platform_id).await.unwrap();
+        selected_platform = platforms.iter().find(|p| p.id == selected_platform_id);
+    } else {
+        links = vec![];
+        selected_platform = None;
+    };
+
     let mut page_state = session.get::<PageState>(PAGE_STATE_KEY).unwrap_or_default();
-    page_state.selected_platform_id = selected_platform_id;
     session.set(
         PAGE_STATE_KEY,
         PageState {
@@ -89,14 +109,16 @@ pub async fn get_view(
     Ok(Html(
         HomeViewTemplate {
             platforms: &platforms,
+            links: &links,
             state: &page_state,
+            selected_platform,
         }
         .render()
         .unwrap(),
     ))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct PostResetAPIKeyRequest {
     platform_id: Uuid,
 }
@@ -136,20 +158,27 @@ pub async fn post_reset_api_key(
     });
     session.set(PAGE_STATE_KEY, &page_state);
 
-    Ok(Redirect::see_other("/admin/dashboard/"))
+    Ok(Redirect::see_other(format!(
+        "/admin/dashboard/?platform={}",
+        platform_id
+    )))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Validate, Deserialize)]
 pub struct PostCreatePlatformRequest {
+    #[validate(min_length = 2)]
+    #[validate(max_length = 28)]
     name: String,
 }
 
 #[poem::handler]
 pub async fn post_create_platform(
     db_pool: Data<&sqlx::PgPool>,
-    Form(PostCreatePlatformRequest { name }): Form<PostCreatePlatformRequest>,
+    Form(create_platform_request): Form<PostCreatePlatformRequest>,
     session: &Session,
 ) -> poem::Result<Redirect> {
+    let PostCreatePlatformRequest { name } = validate_to_poem_error(create_platform_request)?;
+
     let mut db = db_pool.acquire().await.unwrap();
 
     let mut page_state = session.get::<PageState>(PAGE_STATE_KEY).unwrap_or_default();
@@ -169,5 +198,118 @@ pub async fn post_create_platform(
     });
     session.set(PAGE_STATE_KEY, &page_state);
 
-    Ok(Redirect::see_other("/admin/dashboard/"))
+    Ok(Redirect::see_other(format!("/admin/dashboard/?platform={}", platform.id)))
+}
+
+#[derive(Validate, Deserialize)]
+pub struct PostCreateLinkRequest {
+    platform_id: Uuid,
+
+    #[validate(min_length = 7)]
+    #[validate(max_length = 1000)]
+    #[validate(
+        pattern = r"https?:\/\/(.+)?[-a-zA-Z0-9@:%._\+~#=]{1,256}(\.[a-zA-Z0-9()]{1,6})?\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
+    )]
+    url: String,
+
+    #[validate(min_length = 2)]
+    #[validate(max_length = 100)]
+    #[validate(pattern = r"^[\w\-]{2,28}$")]
+    slug: Option<String>,
+
+    metadata: Option<serde_json::Value>,
+}
+
+#[poem::handler]
+pub async fn post_create_link(
+    db_pool: Data<&sqlx::PgPool>,
+    Form(mut create_link_request): Form<PostCreateLinkRequest>,
+) -> poem::Result<Redirect> {
+    if create_link_request
+        .slug
+        .as_ref()
+        .is_some_and(|s| s.is_empty())
+    {
+        create_link_request.slug = None;
+    }
+
+    if let Some(ref metadata) = create_link_request.metadata {
+        if match metadata {
+            serde_json::Value::Null => true,
+            serde_json::Value::Bool(_) => false,
+            serde_json::Value::Number(_) => false,
+            serde_json::Value::String(string) => string.is_empty(),
+            serde_json::Value::Array(array) => array.is_empty(),
+            serde_json::Value::Object(object) => object.is_empty(),
+        } {
+            create_link_request.metadata = None;
+        // Take string from text input and re-parse it
+        } else if let serde_json::Value::String(string) = metadata {
+            if let Ok(parsed_str) = serde_json::from_str::<serde_json::Value>(string) {
+                create_link_request.metadata = Some(parsed_str);
+            }
+        }
+    }
+
+    let PostCreateLinkRequest {
+        platform_id,
+        url,
+        mut slug,
+        mut metadata,
+    } = validate_to_poem_error(create_link_request)?;
+
+    let mut db = db_pool.acquire().await.unwrap();
+
+    // See src/routes/mod.rs::routes
+    const BLACKLISTED_SLUGS: &[&str] = &["admin", "static"];
+    if slug
+        .as_ref()
+        .is_some_and(|slug| BLACKLISTED_SLUGS.contains(&slug.as_str()))
+    {
+        return Err(poem::Error::from_string(
+            format!("Slug cannot be one of: {}", BLACKLISTED_SLUGS.join(", ")),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    if get_platform(&mut db, &platform_id).await.unwrap().is_none() {
+        return Err(poem::Error::from_string(
+            format!("Can not find platform for ID: {:?}", platform_id),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    create_link(&mut db, &platform_id, slug, url, metadata)
+        .await
+        .unwrap();
+
+    Ok(Redirect::see_other(format!(
+        "/admin/dashboard/?platform={platform_id}"
+    )))
+}
+
+#[derive(Deserialize)]
+pub struct PostDeleteLinkRequest {
+    link_slug: String,
+}
+
+#[poem::handler]
+pub async fn post_delete_link(
+    db_pool: Data<&sqlx::PgPool>,
+    Form(PostDeleteLinkRequest { link_slug }): Form<PostDeleteLinkRequest>,
+) -> poem::Result<Redirect> {
+    let mut db = db_pool.acquire().await.unwrap();
+
+    let link = delete_link(&mut db, &link_slug).await.unwrap();
+
+    match link {
+        None => Err(poem::Error::from_string(
+            "Link for specified slug does not exist",
+            StatusCode::NOT_FOUND,
+        )),
+        Some(link) => Ok(Redirect::see_other(format!(
+            "/admin/dashboard/?platform={}",
+            link.platform_id
+        ))),
+    }
 }

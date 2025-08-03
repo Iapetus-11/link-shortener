@@ -25,16 +25,13 @@
     .platforms-list {
         display: flex;
         flex-direction: column;
-        row-gap: 1rem;
+        gap: 1rem;
     }
 
     .platform-card {
         transition: border 200ms;
         border: 1px transparent solid;
         display: block;
-        text-decoration: none;
-        color: inherit;
-        text-decoration: none;
     }
 
     .selected-platform-card {
@@ -49,7 +46,7 @@
         border: 1px #629bde solid;
     }
 
-    .copy-button {
+    .clickable-text-with-icon {
         display: flex;
         align-items: center;
 
@@ -58,11 +55,11 @@
         margin: -0.5rem;
     }
 
-    .copy-button samp {
+    .clickable-text-with-icon samp {
         font-style: monospace;
     }
 
-    .copy-button .icon {
+    .clickable-text-with-icon .icon {
         opacity: 0;
         height: 1rem;
         width: 1rem;
@@ -70,30 +67,42 @@
         margin-left: 0.125rem;
     }
 
-    .copy-button:hover .icon {
+    .clickable-text-with-icon:hover .icon {
         opacity: 0.8;
     }
 
-    .copy-button:active .icon {
+    .clickable-text-with-icon:active .icon {
         opacity: 1;
     }
 
     .reset-key-button {
-        margin-top: auto;
-        margin-bottom: auto;
         display: flex;
         align-items: center;
+        font-size: 0.8rem;
     }
 
     .reset-key-button .icon {
-        height: 1.125rem;
-        width: 1.125rem;
+        height: 1rem;
+        width: 1rem;
         margin-right: 0.25rem;
         transition: transform 200ms;
     }
 
     .reset-key-button:hover .icon {
         transform: rotate(15deg);
+    }
+
+    .delete-link-button {
+        display: flex;
+        align-items: center;
+        font-size: 0.8rem;
+    }
+
+    .delete-link-button .icon {
+        height: 1rem;
+        width: 1rem;
+        margin-right: 0.25rem;
+        transition: transform 200ms;
     }
 
     @keyframes spin {
@@ -152,6 +161,34 @@
         -webkit-mask-size: 100% 100%;
         mask-size: 100% 100%;
     }
+
+    .material-symbols--arrow-outward-rounded {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='m16 8.4l-8.9 8.9q-.275.275-.7.275t-.7-.275t-.275-.7t.275-.7L14.6 7H7q-.425 0-.712-.288T6 6t.288-.712T7 5h10q.425 0 .713.288T18 6v10q0 .425-.288.713T17 17t-.712-.288T16 16z'/%3E%3C/svg%3E");
+        background-color: currentColor;
+        -webkit-mask-image: var(--svg);
+        mask-image: var(--svg);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-size: 100% 100%;
+        mask-size: 100% 100%;
+    }
+
+    .material-symbols--delete-outline {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zM17 6H7v13h10zM9 17h2V8H9zm4 0h2V8h-2zM7 6v13z'/%3E%3C/svg%3E");
+        background-color: currentColor;
+        -webkit-mask-image: var(--svg);
+        mask-image: var(--svg);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-size: 100% 100%;
+        mask-size: 100% 100%;
+    }
 </style>
 {% endblock %}
 
@@ -175,14 +212,9 @@
         <form
             action="create-platform/"
             method="post"
-            style="margin-top: 1.75rem; display: flex; width: 100%; gap: 0.5rem;"
+            style="margin-top: 1.75rem; justify-content: end; display: flex; width: 100%; gap: 0.5rem;"
             onsubmit="this.querySelector('.icon').classList.add('animate-spin');"
         >
-            <div
-                style="display: flex; align-items: center; width: 100%; height: 2rem; border-left: 1px solid #506073; margin-right: 1rem;">
-                <div style="width: 100%; height: 1px; background-color: #506073"></div>
-            </div>
-
             <input
                 type="text"
                 name="name"
@@ -209,13 +241,26 @@
 
         <ul
             class="platforms-list"
-            style="margin-top: 1.75rem;"
+            style="margin-top: 1rem;"
         >
             {% for platform in platforms %}
             <li>
                 <a
-                    href="?selected_platform={{ platform.id }}"
-                    class="card platform-card {% if state.selected_platform_id.is_some() && platform.id == state.selected_platform_id.unwrap() %}selected-platform-card{% endif %}"
+                    {%
+                    if
+                    selected_platform.is_some()
+                    &&
+                    selected_platform.unwrap().id==platform.id
+                    %}
+                    href="?"
+                    {%
+                    else
+                    %}
+                    href="?platform={{ platform.id }}"
+                    {%
+                    endif
+                    %}
+                    class="card platform-card {% if selected_platform.is_some() && platform.id == selected_platform.unwrap().id %}selected-platform-card{% endif %}"
                 >
                     <div style="display: flex; justify-content: space-between;">
                         <div>
@@ -227,7 +272,8 @@
                             <button
                                 type="button"
                                 onclick="navigator.clipboard.writeText('{{ platform.id }}'); event.preventDefault();"
-                                class="copy-button"
+                                class="clickable-text-with-icon"
+                                style="color: #bbc4c2;"
                             >
                                 <span>ID: <samp>{{ platform.id }}</samp></span>
                                 <span class="icon material-symbols--content-copy-outline">
@@ -238,7 +284,7 @@
                         <form
                             action="reset-api-key/"
                             method="post"
-                            style="display: flex;"
+                            style="display: flex; align-items: center;"
                         >
                             <input
                                 type="hidden"
@@ -258,8 +304,10 @@
                     </div>
 
                     {% match state.action_result %}
-                    {% when Some with (PageActionResult::ShowNewPlatformApiKey { platform_id,
-                    api_key })
+                    {% when Some with (PageActionResult::ShowNewPlatformApiKey {
+                    platform_id,
+                    api_key,
+                    })
                     %}
                     {%if platform_id == &platform.id %}
                     <div>
@@ -270,8 +318,8 @@
                         <button
                             type="button"
                             onclick="navigator.clipboard.writeText('{{ api_key }}'); event.preventDefault();"
-                            class="copy-button"
-                            style="font-size: 0.8rem;"
+                            class="clickable-text-with-icon"
+                            style="font-size: 0.8rem; color: #bbc4c2;"
                         >
                             <samp>{{ api_key }}</samp>
                             <span class="icon material-symbols--content-copy-outline"></span>
@@ -288,12 +336,151 @@
 
     <section>
         <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem; text-align: right;">
-            Links
+            {% if let Some(selected_platform) = selected_platform %}{{ selected_platform.name }}{%
+            endif %} Links
         </h2>
 
+        {% if selected_platform.is_some() %}
+        <form
+            action="create-link/"
+            method="post"
+            style="margin-top: 1.75rem; display: flex; flex-direction: column; width: 100%; gap: 0.5rem;"
+            onsubmit="this.querySelector('.icon').classList.add('animate-spin');"
+        >
+            <input
+                type="hidden"
+                name="platform_id"
+                value="{{ selected_platform.unwrap().id }}"
+            >
+
+            <input
+                type="url"
+                name="url"
+                required
+                minlength="7"
+                maxlength="1000"
+                placeholder="Enter link URL..."
+                class="text-input"
+            >
+
+            <textarea
+                name="metadata"
+                class="text-input"
+                placeholder="Enter link metadata JSON (optional)..."
+                style="height: 3rem; resize: vertical;"
+            ></textarea>
+
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                <input
+                    type="text"
+                    name="slug"
+                    minlength="2"
+                    maxlength="28"
+                    placeholder="Enter link slug / short..."
+                    title="Slug must only contain alphanumeric characters, dashes, and underscores"
+                    pattern="[\w\-]{2,28}"
+                    class="text-input"
+                    style="width: 100%;"
+                >
+
+                <button
+                    type="submit"
+                    class="button"
+                    style="display: flex; align-items: center; width: fit-content;"
+                >
+                    <span
+                        class="icon material-symbols--add"
+                        style="margin-right: 0.125rem; margin-left: -0.25rem; width: 1.25rem; height: 1.25rem;"
+                    ></span>
+                    Create
+                </button>
+            </div>
+        </form>
+        {% endif %}
+
+        {% if selected_platform.is_none() %}
         <p style="margin-top: 4rem; width: 100%; text-align: center;">
-            Select a platform from the left panel to view its links
+            Select a platform from the left panel to create or view links.
         </p>
+        {% else if links.len() > 0 %}
+        <ul style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+            {% for link in links %}
+            <li class="card">
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="width: 100%;">
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.65rem; font-weight: 600;">
+                            <button
+                                type="button"
+                                onclick="navigator.clipboard.writeText(`${window.origin}/{{ link.slug }}`)"
+                                class="clickable-text-with-icon"
+                                style="margin-bottom: -1rem;"
+                            >
+                                /{{ link.slug }}
+                                <span
+                                    class="icon material-symbols--content-copy-outline"
+                                    style="height: 1.5rem; width: 1.5rem;"
+                                ></span>
+                            </button>
+                        </h3>
+
+                        <a
+                            class="clickable-text-with-icon"
+                            href="{{ link.url }}"
+                            target="_blank"
+                            rel="noreferrer"
+                            style="color: #bbc4c2; margin-bottom: 0.65rem;"
+                        >
+                            <span style="text-overflow: ellipsis;">
+                                <samp>{{ link.url }}</samp>
+                            </span>
+                            <span class="icon material-symbols--arrow-outward-rounded"></span>
+                        </a>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="delete-link/"
+                    >
+                        <input
+                            type="hidden"
+                            name="link_slug"
+                            value="{{ link.slug }}"
+                        >
+
+                        <button
+                            type="submit"
+                            class="button delete-link-button"
+                            onclick="this.querySelector('span').classList.add('animate-spin');"
+                            style="margin-top: auto; margin-bottom: auto;"
+                        >
+                            <span class="icon material-symbols--delete-outline"></span>
+                            Delete
+                        </button>
+                    </form>
+                </div>
+
+                {% if let Some(metadata) = link.metadata %}
+                <code style="
+                        display: block;
+                        white-space: pre;
+                        text-align: left;
+                        background-color: #354659;
+                        color: #bbc4c2;
+                        padding: 0.75rem;
+                        border-radius: 0.25rem;
+                        cursor: text;
+                    ">{{
+                    metadata.to_json_string_pretty().unwrap()
+                }}</code>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="margin-top: 6rem; width: 100%; text-align: center;">
+            This platform has no links, create one above
+        </p>
+        {% endif %}
     </section>
 </div>
 {% endblock %}
