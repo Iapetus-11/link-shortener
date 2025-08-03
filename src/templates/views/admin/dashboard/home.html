@@ -75,34 +75,28 @@
         opacity: 1;
     }
 
-    .reset-key-button {
+    .card-action-button {
         display: flex;
         align-items: center;
         font-size: 0.8rem;
+        height: 32px;
+        padding: 0 0.5rem;
     }
 
-    .reset-key-button .icon {
+    .card-action-button .icon {
+        display: flex;
+        align-items: center;
         height: 1rem;
         width: 1rem;
         margin-right: 0.25rem;
+    }
+
+    .reset-key-button .icon {
         transition: transform 200ms;
     }
 
     .reset-key-button:hover .icon {
         transform: rotate(15deg);
-    }
-
-    .delete-link-button {
-        display: flex;
-        align-items: center;
-        font-size: 0.8rem;
-    }
-
-    .delete-link-button .icon {
-        height: 1rem;
-        width: 1rem;
-        margin-right: 0.25rem;
-        transition: transform 200ms;
     }
 
     @keyframes spin {
@@ -194,6 +188,7 @@
 
 {% block body %}
 <div class="layout">
+    <!-- Platforms -->
     <section>
         <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 1.25rem;">Platforms</h2>
         <p style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem;">
@@ -281,26 +276,49 @@
                             </button>
                         </div>
 
-                        <form
-                            action="reset-api-key/"
-                            method="post"
-                            style="display: flex; align-items: center;"
+                        <div
+                            style="display: flex; flex-direction: column; justify-content: center; align-items: end; gap: 0.4rem; margin-top: -0.5rem; margin-bottom: -0.5rem; margin-right: -0.5rem;"
                         >
-                            <input
-                                type="hidden"
-                                name="platform_id"
-                                value="{{ platform.id }}"
+                            <form
+                                action="reset-api-key/"
+                                method="post"
                             >
+                                <input
+                                    type="hidden"
+                                    name="platform_id"
+                                    value="{{ platform.id }}"
+                                >
 
-                            <button
-                                type="submit"
-                                class="button reset-key-button"
-                                onclick="this.querySelector('span').classList.add('animate-spin'); event.stopPropagation();"
+                                <button
+                                    type="submit"
+                                    class="button card-action-button reset-key-button"
+                                    onclick="this.querySelector('span').classList.add('animate-spin'); event.stopPropagation();"
+                                >
+                                    <span class="icon material-symbols--refresh-rounded"></span>
+                                    Reset API Key
+                                </button>
+                            </form>
+
+                            <form
+                                method="post"
+                                action="delete-platform/"
                             >
-                                <span class="icon material-symbols--refresh-rounded"></span>
-                                Reset API Key
-                            </button>
-                        </form>
+                                <input
+                                    type="hidden"
+                                    name="platform_id"
+                                    value="{{ platform.id }}"
+                                >
+
+                                <button
+                                    type="submit"
+                                    class="button card-action-button"
+                                    onclick="this.querySelector('span').classList.add('animate-spin');"
+                                >
+                                    <span class="icon material-symbols--delete-outline"></span>
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     {% match state.action_result %}
@@ -334,6 +352,7 @@
         </ul>
     </section>
 
+    <!-- Links -->
     <section>
         <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem; text-align: right;">
             {% if let Some(selected_platform) = selected_platform %}{{ selected_platform.name }}{%
@@ -408,7 +427,7 @@
             <li class="card">
                 <div style="display: flex; justify-content: space-between;">
                     <div style="width: 100%;">
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.65rem; font-weight: 600;">
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600;">
                             <button
                                 type="button"
                                 onclick="navigator.clipboard.writeText(`${window.origin}/{{ link.slug }}`)"
@@ -428,7 +447,7 @@
                             href="{{ link.url }}"
                             target="_blank"
                             rel="noreferrer"
-                            style="color: #bbc4c2; margin-bottom: 0.65rem;"
+                            style="color: #bbc4c2;"
                         >
                             <span style="text-overflow: ellipsis;">
                                 <samp>{{ link.url }}</samp>
@@ -437,39 +456,33 @@
                         </a>
                     </div>
 
-                    <form
-                        method="post"
-                        action="delete-link/"
-                    >
-                        <input
-                            type="hidden"
-                            name="link_slug"
-                            value="{{ link.slug }}"
+                    <div style="display: flex; flex-direction: column; justify-content: start; margin-top: -0.25rem; margin-bottom: -0.25rem; margin-right: -0.25rem;">
+                        <form
+                            method="post"
+                            action="delete-link/"
                         >
+                            <input
+                                type="hidden"
+                                name="link_slug"
+                                value="{{ link.slug }}"
+                            >
 
-                        <button
-                            type="submit"
-                            class="button delete-link-button"
-                            onclick="this.querySelector('span').classList.add('animate-spin');"
-                            style="margin-top: auto; margin-bottom: auto;"
-                        >
-                            <span class="icon material-symbols--delete-outline"></span>
-                            Delete
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                class="button card-action-button"
+                                onclick="this.querySelector('span').classList.add('animate-spin');"
+                            >
+                                <span class="icon material-symbols--delete-outline"></span>
+                                Delete
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 {% if let Some(metadata) = link.metadata %}
-                <code style="
-                        display: block;
-                        white-space: pre;
-                        text-align: left;
-                        background-color: #354659;
-                        color: #bbc4c2;
-                        padding: 0.75rem;
-                        border-radius: 0.25rem;
-                        cursor: text;
-                    ">{{
+                <code
+                    style="display: block; white-space: pre; text-align: left; background-color: #354659; color: #bbc4c2; padding: 0.75rem; border-radius: 0.25rem; cursor: text; margin-top: 0.75rem;"
+                >{{
                     metadata.to_json_string_pretty().unwrap()
                 }}</code>
                 {% endif %}

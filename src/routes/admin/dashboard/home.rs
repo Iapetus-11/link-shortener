@@ -33,6 +33,7 @@ pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
         .at("", get(get_view))
         .at("/reset-api-key/", post(post_reset_api_key))
         .at("/create-platform/", post(post_create_platform))
+        .at("/delete-platform/", post(post_delete_platform))
         .at("/create-link/", post(post_create_link))
         .at("/delete-link/", post(post_delete_link))
         .with(ServerSession::new(
@@ -199,6 +200,18 @@ pub async fn post_create_platform(
     session.set(PAGE_STATE_KEY, &page_state);
 
     Ok(Redirect::see_other(format!("/admin/dashboard/?platform={}", platform.id)))
+}
+
+pub struct PostDeletePlatformRequest {
+    platform_id: Uuid,
+}
+
+#[poem::handler]
+pub async fn post_delete_platform(
+    db_pool: Data<&sqlx::PgPool>,
+    Form(delete_platform_request): Form<PostDeletePlatformRequest>,
+) {
+    todo!();
 }
 
 #[derive(Validate, Deserialize)]
