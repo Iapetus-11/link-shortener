@@ -20,8 +20,8 @@ use crate::{
     db::{
         links::{Link, create_link, delete_link, get_links},
         platforms::{
-            Platform, UpdatePlatformData, create_platform, get_platform, get_platform_by_name,
-            get_platforms, update_platform,
+            Platform, UpdatePlatformData, create_platform, delete_platform, get_platform,
+            get_platform_by_name, get_platforms, update_platform,
         },
     },
 };
@@ -199,9 +199,13 @@ pub async fn post_create_platform(
     });
     session.set(PAGE_STATE_KEY, &page_state);
 
-    Ok(Redirect::see_other(format!("/admin/dashboard/?platform={}", platform.id)))
+    Ok(Redirect::see_other(format!(
+        "/admin/dashboard/?platform={}",
+        platform.id
+    )))
 }
 
+#[derive(Deserialize)]
 pub struct PostDeletePlatformRequest {
     platform_id: Uuid,
 }
@@ -209,9 +213,16 @@ pub struct PostDeletePlatformRequest {
 #[poem::handler]
 pub async fn post_delete_platform(
     db_pool: Data<&sqlx::PgPool>,
-    Form(delete_platform_request): Form<PostDeletePlatformRequest>,
-) {
-    todo!();
+    Form(PostDeletePlatformRequest { platform_id }): Form<PostDeletePlatformRequest>,
+) -> poem::Result<Redirect> {
+    let mut db = db_pool.acquire().await.unwrap();
+
+    let deleted_platform = delete_platform(&mut db, &platform_id).await.unwrap();
+
+    match deleted_platform {
+        None => Err(poem::Error::from_status(StatusCode::BAD_REQUEST)),
+        Some(_) => Ok(Redirect::see_other("/admin/dashboard/")),
+    }
 }
 
 #[derive(Validate, Deserialize)]
@@ -313,16 +324,16 @@ pub async fn post_delete_link(
 ) -> poem::Result<Redirect> {
     let mut db = db_pool.acquire().await.unwrap();
 
-    let link = delete_link(&mut db, &link_slug).await.unwrap();
+    let deleted_link = delete_link(&mut db, &link_slug).await.unwrap();
 
-    match link {
+    match deleted_link {
         None => Err(poem::Error::from_string(
             "Link for specified slug does not exist",
             StatusCode::NOT_FOUND,
         )),
-        Some(link) => Ok(Redirect::see_other(format!(
+        Some(deleted_link) => Ok(Redirect::see_other(format!(
             "/admin/dashboard/?platform={}",
-            link.platform_id
+            deleted_link.platform_id
         ))),
     }
 }
