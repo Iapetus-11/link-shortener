@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use poem::{
     Body, EndpointExt, Response,
     endpoint::DynEndpoint,
     get,
     http::StatusCode,
     middleware::{NormalizePath, TrailingSlash},
-    web::Path,
+    web::{Path, headers::CacheControl},
 };
 
 pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
@@ -25,6 +27,11 @@ pub async fn get_file(Path((file,)): Path<(String,)>) -> poem::Result<Response> 
     };
 
     Ok(Response::builder()
+        .typed_header(
+            CacheControl::new()
+                .with_public()
+                .with_max_age(Duration::from_secs(3600)),
+        )
         .content_type(content_type)
         .body(Body::from_bytes((data as &[u8]).into())))
 }
