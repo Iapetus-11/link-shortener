@@ -1,0 +1,1 @@
+DROP TABLE dashboard_login_tokens;

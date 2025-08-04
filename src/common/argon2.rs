@@ -7,7 +7,7 @@ fn setup_argon2() -> Argon2<'static> {
     Argon2::new(
         argon2::Algorithm::Argon2id,
         argon2::Version::V0x13,
-        Params::new(19 * 1024, 3, 2, Some(32)).unwrap(),
+        Params::new(19 * 1024, 3, 2, Some(64)).unwrap(),
     )
 }
 
@@ -28,7 +28,7 @@ pub fn hash_key(key: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::argon2::{check_key_against_hash, hash_key};
+    use super::*;
 
     #[test]
     fn test_hash_key_and_check_key_against_hash() {
@@ -37,5 +37,14 @@ mod tests {
 
         assert!(check_key_against_hash(key, &hash));
         assert!(!check_key_against_hash("not the key oops", &hash));
+    }
+
+    #[test]
+    fn test_check_key_on_invalid_hash() {
+        let key_hash = hash_key("test");
+
+        assert!(!check_key_against_hash("balls", &key_hash));
+        assert!(!check_key_against_hash("", &key_hash));
+        assert!(!check_key_against_hash(" ", &key_hash));
     }
 }

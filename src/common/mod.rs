@@ -1,5 +1,6 @@
 pub mod argon2;
 pub mod cli;
+pub mod dashboard_auth;
 pub mod platform_auth;
 pub mod validation;
 

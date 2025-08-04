@@ -5,7 +5,11 @@ use poem::{
 };
 use sqlx::Connection;
 
-use crate::{common::cli::take_input, config::CONFIG, db::platforms::create_platform};
+use crate::{
+    common::{argon2::hash_key, cli::take_input},
+    config::CONFIG,
+    db::platforms::create_platform,
+};
 use std::{env, error::Error as StdError};
 
 mod common;
@@ -47,6 +51,15 @@ async fn run_create_platform() -> Result<(), Box<dyn StdError>> {
     Ok(())
 }
 
+fn run_hash_admin_password() -> Result<(), Box<dyn StdError>> {
+    let password = take_input("Password: ")?;
+    let hashed = hash_key(&password);
+
+    println!("Password Hash: {}", hashed);
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError>> {
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::new()).unwrap();
@@ -57,7 +70,8 @@ async fn main() -> Result<(), Box<dyn StdError>> {
     match command.as_str() {
         "api" => run_api().await.unwrap(),
         "create_platform" => run_create_platform().await.unwrap(),
-        "" => panic!("You must type a command, one of: api, create_platform"),
+        "hash_admin_password" => run_hash_admin_password().unwrap(),
+        "" => panic!("You must type a command, one of: api, create_platform, hash_admin_password"),
         unknown_command => {
             panic!("Unknown command {unknown_command}, you must type one of: api, create_platform")
         }

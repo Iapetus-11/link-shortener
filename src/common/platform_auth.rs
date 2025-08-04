@@ -103,16 +103,6 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_check_api_key_on_invalid_keys(mut db: PgPoolConn) {
-        let (api_key, platform) = create_platform(&mut db, "Villager Bot").await.unwrap();
-
-        assert!(!check_platform_api_key(&platform, "balls"));
-        assert!(!check_platform_api_key(&platform, ""));
-        assert!(!check_platform_api_key(&platform, " "));
-        assert!(check_platform_api_key(&platform, &api_key));
-    }
-
-    #[sqlx::test]
     async fn test_from_request_missing_auth_header(db_pool: PgPool) {
         let result = AuthedPlatform::from_request_without_body(
             &poem::Request::builder().extension(db_pool).finish(),
