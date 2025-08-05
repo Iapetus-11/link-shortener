@@ -1,5 +1,7 @@
 use std::{any::type_name, env, str::FromStr, sync::LazyLock};
 
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+
 pub struct Config {
     pub database_url: String,
     pub database_pool_size: u32,
@@ -28,7 +30,12 @@ fn load() -> Config {
     let database_url: String = get_env("DATABASE_URL");
     let database_pool_size: u32 = get_env("DATABASE_POOL_SIZE");
     let host_address: String = get_env("HOST_ADDRESS");
-    let admin_password_hash: String = get_env("ADMIN_PASSWORD_HASH");
+    let admin_password_hash: String = String::from_utf8_lossy(
+        &BASE64_URL_SAFE_NO_PAD
+            .decode(get_env::<String>("ADMIN_PASSWORD_HASH"))
+            .expect("ADMIN_PASSWORD_HASH should be a base64 encoded argon2id password hash"),
+    )
+    .into();
     let admin_login_expires_after_seconds: u32 = get_env("ADMIN_LOGIN_EXPIRES_AFTER_SECONDS");
 
     Config {

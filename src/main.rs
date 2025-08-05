@@ -1,3 +1,4 @@
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use poem::{
     EndpointExt, Server,
     listener::TcpListener,
@@ -53,7 +54,8 @@ async fn run_create_platform() -> Result<(), Box<dyn StdError>> {
 
 fn run_hash_admin_password() -> Result<(), Box<dyn StdError>> {
     let password = take_input("Password: ")?;
-    let hashed = hash_key(&password);
+
+    let hashed = BASE64_URL_SAFE_NO_PAD.encode(hash_key(&password));
 
     println!("Password Hash: {}", hashed);
 

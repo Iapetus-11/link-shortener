@@ -2,13 +2,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::{
-    common::{
-        argon2::check_key_against_hash,
-        dashboard_auth::{GenerateLoginTokenAndHash, generate_login_token},
-    },
-    config::CONFIG,
-};
+use crate::config::CONFIG;
 
 pub struct DashboardLoginToken {
     pub id: Uuid,
@@ -20,12 +14,8 @@ pub struct DashboardLoginToken {
 /// and an instance of DashboardLoginToken
 pub async fn create_dashboard_login_token(
     db: &mut PgConnection,
-) -> sqlx::Result<(String, DashboardLoginToken)> {
-    let GenerateLoginTokenAndHash {
-        token,
-        hash: token_hash,
-    } = generate_login_token();
-
+    token_hash: &str,
+) -> sqlx::Result<DashboardLoginToken> {
     let token_row = sqlx::query_as!(
         DashboardLoginToken,
         r#"
@@ -39,7 +29,7 @@ pub async fn create_dashboard_login_token(
     .fetch_one(&mut *db)
     .await?;
 
-    Ok((token, token_row))
+    Ok(token_row)
 }
 
 pub async fn get_dashboard_login_token(
@@ -55,8 +45,4 @@ pub async fn get_dashboard_login_token(
         id,
         expiration_barrier,
     ).fetch_optional(&mut *db).await
-}
-
-pub fn check_dashboard_login_token(token_row: &DashboardLoginToken, token_to_check: &str) -> bool {
-    check_key_against_hash(token_to_check, &token_row.token_hash)
 }
