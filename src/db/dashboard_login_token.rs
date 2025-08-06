@@ -7,6 +7,7 @@ use crate::config::CONFIG;
 pub struct DashboardLoginToken {
     pub id: Uuid,
     pub token_hash: String,
+    #[allow(dead_code)]
     pub created_at: DateTime<Utc>,
 }
 

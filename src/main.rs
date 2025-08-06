@@ -61,7 +61,7 @@ fn run_hash_admin_password() -> Result<(), Box<dyn StdError>> {
     let argon2 = setup_strong_argon2();
     let hashed = BASE64_URL_SAFE_NO_PAD.encode(argon2_hash_key(&argon2, &password));
 
-    println!("Password Hash: {}", hashed);
+    println!("Password Hash: {hashed}");
 
     Ok(())
 }

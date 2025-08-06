@@ -98,7 +98,7 @@ pub async fn get_view(
         PAGE_STATE_KEY,
         PageState {
             action_result: None,
-            ..page_state
+            // ..page_state
         },
     );
 
@@ -155,8 +155,7 @@ pub async fn post_reset_api_key(
     session.set(PAGE_STATE_KEY, &page_state);
 
     Ok(Redirect::see_other(format!(
-        "/admin/dashboard/?platform={}",
-        platform_id
+        "/admin/dashboard/?platform={platform_id}"
     )))
 }
 
@@ -293,7 +292,7 @@ pub async fn post_create_link(
 
     if get_platform(&mut db, &platform_id).await.unwrap().is_none() {
         return Err(poem::Error::from_string(
-            format!("Can not find platform for ID: {:?}", platform_id),
+            format!("Can not find platform for ID: {platform_id:?}"),
             StatusCode::BAD_REQUEST,
         ));
     }
