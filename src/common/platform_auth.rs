@@ -5,13 +5,14 @@ use poem::{
 use rand::distr::{Alphanumeric, SampleString};
 
 use crate::{
-    common::argon2::{check_key_against_hash, hash_key},
+    common::argon2::{argon2_check_key_against_hash, argon2_hash_key, setup_strong_argon2},
     db::platforms::{Platform, get_platform},
 };
 
 /// Returns true if the api key matches that of the provided platform
 pub fn check_platform_api_key(platform: &Platform, api_key: &str) -> bool {
-    check_key_against_hash(api_key, &platform.api_key_hash)
+    let argon2 = setup_strong_argon2();
+    argon2_check_key_against_hash(&argon2, api_key, &platform.api_key_hash)
 }
 
 pub struct PlatformApiKeyAndHash {
@@ -23,7 +24,8 @@ pub struct PlatformApiKeyAndHash {
 pub fn generate_platform_api_key() -> PlatformApiKeyAndHash {
     let api_key = Alphanumeric.sample_string(&mut rand::rng(), 69);
 
-    let api_key_hash = hash_key(&api_key);
+    let argon2 = setup_strong_argon2();
+    let api_key_hash = argon2_hash_key(&argon2, &api_key);
 
     PlatformApiKeyAndHash {
         api_key,

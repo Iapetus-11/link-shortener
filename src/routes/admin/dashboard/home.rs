@@ -5,8 +5,8 @@ use poem::{
     get,
     http::StatusCode,
     post,
-    session::{CookieConfig, MemoryStorage, ServerSession, Session},
-    web::{Data, Form, Html, Query, Redirect, cookie::SameSite},
+    session::Session,
+    web::{Data, Form, Html, Query, Redirect},
 };
 use serde::{Deserialize, Serialize};
 use serde_valid::{Validate, json::ToJsonString};
@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{
+        dashboard_auth::dashboard_auth_middleware,
         platform_auth::{PlatformApiKeyAndHash, generate_platform_api_key},
         validation::validate_to_poem_error,
     },
@@ -36,17 +37,11 @@ pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
         .at("/delete-platform/", post(post_delete_platform))
         .at("/create-link/", post(post_create_link))
         .at("/delete-link/", post(post_delete_link))
-        .with(ServerSession::new(
-            CookieConfig::new()
-                .secure(true)
-                .http_only(true)
-                .same_site(SameSite::Strict), // TODO: Set domain
-            MemoryStorage::new(),
-        ))
+        .around(dashboard_auth_middleware)
         .boxed()
 }
 
-const PAGE_STATE_KEY: &str = "SESSION_STATE";
+const PAGE_STATE_KEY: &str = "__Host-PS";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]

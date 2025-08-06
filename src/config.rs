@@ -7,7 +7,7 @@ pub struct Config {
     pub database_pool_size: u32,
     pub host_address: String,
     pub admin_password_hash: String,
-    pub admin_login_expires_after_seconds: u32,
+    pub admin_login_expires_after_seconds: u64,
 }
 
 fn get_env<T: FromStr>(key: &str) -> T {
@@ -36,7 +36,7 @@ fn load() -> Config {
             .expect("ADMIN_PASSWORD_HASH should be a base64 encoded argon2id password hash"),
     )
     .into();
-    let admin_login_expires_after_seconds: u32 = get_env("ADMIN_LOGIN_EXPIRES_AFTER_SECONDS");
+    let admin_login_expires_after_seconds: u64 = get_env("ADMIN_LOGIN_EXPIRES_AFTER_SECONDS");
 
     Config {
         database_url,

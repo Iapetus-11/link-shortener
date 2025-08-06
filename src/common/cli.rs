@@ -8,7 +8,7 @@ pub fn take_input(prompt: &str) -> io::Result<String> {
 
     stdin().read_line(&mut input).unwrap();
 
-    for char in ['\r', '\n'] {
+    for char in ['\n', '\r'] {
         input = input.strip_suffix(char).unwrap_or(&input).to_string();
     }
 

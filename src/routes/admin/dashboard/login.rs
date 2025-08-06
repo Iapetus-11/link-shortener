@@ -1,25 +1,15 @@
 use askama::Template;
 use poem::{
-    Body, EndpointExt, Response,
-    endpoint::DynEndpoint,
-    get,
-    session::{CookieConfig, CookieSession, Session},
-    web::{Data, Form, Html, Redirect, cookie::SameSite},
+    Body, Response, get,
+    session::Session,
+    web::{Data, Form, Html, Redirect},
 };
 use serde::Deserialize;
 
 use crate::common::dashboard_auth::attempt_log_in_dashboard_session;
 
-pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
-    poem::Route::new()
-        .at("", get(get_login).post(post_login))
-        .with(CookieSession::new(
-            CookieConfig::new()
-                .secure(true)
-                .http_only(true)
-                .same_site(SameSite::Strict),
-        ))
-        .boxed()
+pub fn routes() -> poem::Route {
+    poem::Route::new().at("", get(get_login).post(post_login))
 }
 
 #[derive(askama::Template)]

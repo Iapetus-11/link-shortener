@@ -7,7 +7,10 @@ use poem::{
 use sqlx::Connection;
 
 use crate::{
-    common::{argon2::hash_key, cli::take_input},
+    common::{
+        argon2::{argon2_hash_key, setup_strong_argon2},
+        cli::take_input,
+    },
     config::CONFIG,
     db::platforms::create_platform,
 };
@@ -55,7 +58,8 @@ async fn run_create_platform() -> Result<(), Box<dyn StdError>> {
 fn run_hash_admin_password() -> Result<(), Box<dyn StdError>> {
     let password = take_input("Password: ")?;
 
-    let hashed = BASE64_URL_SAFE_NO_PAD.encode(hash_key(&password));
+    let argon2 = setup_strong_argon2();
+    let hashed = BASE64_URL_SAFE_NO_PAD.encode(argon2_hash_key(&argon2, &password));
 
     println!("Password Hash: {}", hashed);
 
