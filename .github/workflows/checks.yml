@@ -37,6 +37,9 @@ jobs:
           sqlx database create
           sqlx migrate run
 
+      - name: Check sqlx
+        run: cargo sqlx prepare --check
+
       - name: Build project
         run: cargo build
 

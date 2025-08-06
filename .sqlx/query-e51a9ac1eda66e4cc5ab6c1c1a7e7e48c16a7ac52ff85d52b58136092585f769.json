@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO link_visits (link_slug, at, headers, ip_address) VALUES ($1, NOW(), $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Jsonb",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e51a9ac1eda66e4cc5ab6c1c1a7e7e48c16a7ac52ff85d52b58136092585f769"
+}
