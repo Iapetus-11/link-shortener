@@ -4,7 +4,7 @@ use poem::{
     listener::TcpListener,
     middleware::{AddData, CatchPanic, NormalizePath, Tracing, TrailingSlash},
 };
-use sqlx::{migrate::Migrator, Connection};
+use sqlx::{Connection, migrate::Migrator};
 
 use crate::{
     common::{

@@ -9,7 +9,8 @@ pub struct Config {
 }
 
 fn get_env<T: FromStr>(key: &str) -> T {
-    let string = env::var(key).unwrap_or_else(|_| panic!("Please set {key} in your .env"));
+    let string =
+        env::var(key).unwrap_or_else(|_| panic!("Please set {key} in your env or .env file"));
 
     let parsed = string.parse::<T>();
 
@@ -17,7 +18,7 @@ fn get_env<T: FromStr>(key: &str) -> T {
         Ok(value) => value,
         Err(_) => {
             let type_name = type_name::<T>();
-            panic!("Expected {key} to be a valid {type_name} in your .env");
+            panic!("Expected {key} to be a valid {type_name} in your env or .env file");
         }
     }
 }
@@ -26,7 +27,7 @@ fn get_env<T: FromStr>(key: &str) -> T {
 fn load() -> Config {
     use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 
-    dotenvy::dotenv().unwrap();
+    let _ = dotenvy::dotenv();
 
     let database_url: String = get_env("DATABASE_URL");
     let database_pool_size: u32 = get_env("DATABASE_POOL_SIZE");
