@@ -1,7 +1,5 @@
 use std::{any::type_name, env, str::FromStr, sync::LazyLock};
 
-use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
-
 pub struct Config {
     pub database_url: String,
     pub database_pool_size: u32,
@@ -24,7 +22,10 @@ fn get_env<T: FromStr>(key: &str) -> T {
     }
 }
 
+#[cfg(not(test))]
 fn load() -> Config {
+    use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+
     dotenvy::dotenv().unwrap();
 
     let database_url: String = get_env("DATABASE_URL");
@@ -37,6 +38,32 @@ fn load() -> Config {
     )
     .into();
     let admin_login_expires_after_seconds: u64 = get_env("ADMIN_LOGIN_EXPIRES_AFTER_SECONDS");
+
+    Config {
+        database_url,
+        database_pool_size,
+        host_address,
+        admin_password_hash,
+        admin_login_expires_after_seconds,
+    }
+}
+
+#[cfg(test)]
+fn load() -> Config {
+    use crate::common::argon2::setup_strong_argon2;
+    use argon2::{
+        PasswordHasher,
+        password_hash::{SaltString, rand_core::OsRng},
+    };
+
+    let database_url: String = get_env("DATABASE_URL");
+    let database_pool_size: u32 = 1;
+    let host_address: String = "localhost:8000".to_string();
+    let admin_password_hash: String = setup_strong_argon2()
+        .hash_password("password".as_bytes(), &SaltString::generate(OsRng))
+        .unwrap()
+        .to_string();
+    let admin_login_expires_after_seconds: u64 = 3600;
 
     Config {
         database_url,
