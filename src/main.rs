@@ -23,7 +23,7 @@ mod routes;
 
 static DB_MIGRATOR: Migrator = sqlx::migrate!();
 
-async fn run_api() -> Result<(), Box<dyn StdError>> {
+async fn run_app() -> Result<(), Box<dyn StdError>> {
     let db_pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(CONFIG.database_pool_size)
         .connect(&CONFIG.database_url)
@@ -42,6 +42,7 @@ async fn run_api() -> Result<(), Box<dyn StdError>> {
     Ok(())
 }
 
+/// For local development use `sqlx migrate run` via the sqlx CLI, this is intended for use when deploying
 async fn run_migrate_db() -> Result<(), Box<dyn StdError>> {
     let db_pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(1)
@@ -87,7 +88,7 @@ async fn main() -> Result<(), Box<dyn StdError>> {
     let command = args.next().unwrap_or("".into());
 
     match command.as_str() {
-        "api" => run_api().await.unwrap(),
+        "app" => run_app().await.unwrap(),
         "migrate_db" => run_migrate_db().await.unwrap(),
         "create_platform" => run_create_platform().await.unwrap(),
         "hash_admin_password" => run_hash_admin_password().unwrap(),
