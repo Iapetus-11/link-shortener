@@ -27,8 +27,6 @@ use crate::{
     },
 };
 
-// TODO: Add auth
-
 pub fn routes() -> Box<dyn DynEndpoint<Output = Response>> {
     poem::Route::new()
         .at("", get(get_view))
