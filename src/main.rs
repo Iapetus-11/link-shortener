@@ -4,7 +4,7 @@ use poem::{
     listener::TcpListener,
     middleware::{AddData, CatchPanic, NormalizePath, Tracing, TrailingSlash},
 };
-use sqlx::Connection;
+use sqlx::{migrate::Migrator, Connection};
 
 use crate::{
     common::{
@@ -21,6 +21,8 @@ mod config;
 mod db;
 mod routes;
 
+static DB_MIGRATOR: Migrator = sqlx::migrate!();
+
 async fn run_api() -> Result<(), Box<dyn StdError>> {
     let db_pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(CONFIG.database_pool_size)
@@ -36,6 +38,17 @@ async fn run_api() -> Result<(), Box<dyn StdError>> {
     Server::new(TcpListener::bind(CONFIG.host_address.clone()))
         .run(app)
         .await?;
+
+    Ok(())
+}
+
+async fn run_migrate_db() -> Result<(), Box<dyn StdError>> {
+    let db_pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&CONFIG.database_url)
+        .await?;
+
+    DB_MIGRATOR.run(&db_pool).await.unwrap();
 
     Ok(())
 }
@@ -75,6 +88,7 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 
     match command.as_str() {
         "api" => run_api().await.unwrap(),
+        "migrate_db" => run_migrate_db().await.unwrap(),
         "create_platform" => run_create_platform().await.unwrap(),
         "hash_admin_password" => run_hash_admin_password().unwrap(),
         "" => panic!("You must type a command, one of: api, create_platform, hash_admin_password"),
